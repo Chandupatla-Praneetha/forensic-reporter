@@ -1,0 +1,4 @@
+User logged in
+System error occurred
+Unauthorized access attempt
+Malware detected
