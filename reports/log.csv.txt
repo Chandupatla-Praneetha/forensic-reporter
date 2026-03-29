@@ -1,0 +1,21 @@
+
+DIGITAL FORENSIC ANALYSIS REPORT
+---------------------------------
+
+File Name: log.csv
+Analysis Date: 2026-03-27 12:38:31.661695
+
+Threat Level: LOW
+Risk Score: 0 / 100
+
+---------------------------------
+EXTRACTED DATA
+---------------------------------
+
+10:01 admin login success 10:02 guest login failed 10:03 guest login failed 10:04 guest login failed 10:05 guest login failed
+
+---------------------------------
+AI ANALYSIS RESULT
+---------------------------------
+
+No suspicious activity detected.

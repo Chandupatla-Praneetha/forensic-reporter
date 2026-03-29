@@ -1,10 +1,10 @@
 from flask import Flask, render_template, request
 import os
+import pandas as pd
+
 from text_extractor import extract_text
 from ai_analyzer import analyze_text
 from report_generator import generate_report
-from log_analyzer import analyze_logs
-from ml_analyzer import detect_anomalies
 
 app = Flask(__name__)
 
@@ -12,46 +12,73 @@ UPLOAD_FOLDER = "uploads"
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
 
-@app.route("/", methods=["GET", "POST"])
+@app.route("/")
+def home():
+    return render_template("index.html")
+
+
+@app.route("/upload", methods=["POST"])
 def upload_file():
 
-    if request.method == "POST":
+    if "file" not in request.files:
+        return "No file uploaded"
 
-        file = request.files["file"]
+    file = request.files["file"]
 
-        if file.filename == "":
-            return "No file selected"
+    if file.filename == "":
+        return "No file selected"
 
-        filepath = os.path.join(app.config["UPLOAD_FOLDER"], file.filename)
-        file.save(filepath)
+    filepath = os.path.join(app.config["UPLOAD_FOLDER"], file.filename)
+    file.save(filepath)
 
-        filename = file.filename
+    filename = file.filename
 
-        # If CSV file → log analysis + ML anomaly detection
-        if filename.endswith(".csv"):
+    # 🔹 TXT FILE (Conversation)
+    if filename.endswith(".txt"):
 
-            log_analysis = analyze_logs(filepath)
+        extracted_text = extract_text(filepath)
+        analysis_result = analyze_text(extracted_text)
 
-            ml_analysis = detect_anomalies(filepath)
+    # 🔹 CSV FILE (Treat as conversation dataset)
+    elif filename.endswith(".csv"):
 
-            analysis_result = log_analysis + "\n" + ml_analysis
+        df = pd.read_csv(filepath)
 
-            extracted_text = "CSV log dataset analyzed using forensic log analysis and machine learning."
+        # Convert all rows into one big text
+        extracted_text = df.astype(str).apply(" ".join, axis=1).str.cat(sep=" ")
 
-        # Otherwise → normal text evidence analysis
-        else:
+        analysis_result = analyze_text(extracted_text)
 
-            extracted_text = extract_text(filepath)
+    else:
+        return "Unsupported file format"
 
-            analysis_result = analyze_text(extracted_text)
+    # Generate report
+    report = generate_report(filename, extracted_text, analysis_result)
 
-        # Generate forensic report
-        report = generate_report(filename, extracted_text, analysis_result)
+    # PDF filename
+    clean_name = filename.split(".")[0]
+    pdf_file = f"{clean_name}.pdf"
 
-        return f"<pre>{report}</pre>"
+    # 🔥 Suspicious keyword detection
+    suspicious_keywords = ["attack", "hack", "unauthorized", "password", "kill"]
 
-    return render_template("index.html")
+    count = 0
+    for word in suspicious_keywords:
+        count += analysis_result.lower().count(word)
+
+    stats = {
+        "suspicious_count": count
+    }
+
+    return render_template(
+        "index.html",
+        report=report,
+        pdf_file=pdf_file,
+        stats=stats
+    )
 
 
 if __name__ == "__main__":
     app.run(debug=True)
+
+    
